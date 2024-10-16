@@ -1,0 +1,54 @@
+services:
+  nginx:
+    container_name: nginx
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - remember-app
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl", "-f", "http://localhost:80 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  db:
+    container_name: db
+    build:
+      context: ./database
+      dockerfile: Dockerfile
+    env_file:
+      - ./.env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+
+  remember-app:
+    container_name: remember-app
+    build:
+      context: ./remember-app
+      dockerfile: Dockerfile.prod
+    env_file:
+      - ./.env
+    environment:
+      ENV_VARIABLE: ${ENV_VARIABLE}
+      NEXT_PUBLIC_ENV_VARIABLE: ${NEXT_PUBLIC_ENV_VARIABLE}
+    ports:
+      - "3000:3000"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  pgdata:
